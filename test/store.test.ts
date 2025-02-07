@@ -1,4 +1,4 @@
-import { LoadingStore } from '../lib';
+import { LoadingStore } from '../lib/store';
 import { RequestOptions, RequestStatus } from '../lib/types';
 
 import {
