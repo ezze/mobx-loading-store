@@ -1,11 +1,14 @@
 {
-  "name": "tlb",
-  "version": "0.2.0",
-  "description": "TypeScript library boilerplate",
+  "name": "mobx-loading-store",
+  "version": "0.1.0",
+  "description": "Abstract class for MobX store to control API requests' state out-of-the-box",
   "keywords": [
-    "typescript",
-    "library",
-    "boilerplate"
+    "mobx",
+    "store",
+    "loading",
+    "api",
+    "http",
+    "request"
   ],
   "author": {
     "name": "Dmitriy Pushkov",
@@ -14,10 +17,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ezze/typescript-library-boilerplate"
+    "url": "git+https://github.com/ezze/mobx-loading-store"
   },
   "bugs": {
-    "url": "https://github.com/ezze/typescript-library-boilerplate"
+    "url": "https://github.com/ezze/mobx-loading-store"
   },
   "license": "MIT",
   "type": "module",

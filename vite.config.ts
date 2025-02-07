@@ -16,7 +16,7 @@ export default defineConfig({
   ],
   build: {
     lib: {
-      name: 'TypeScriptLibrary',
+      name: 'MobXLoadingStore',
       fileName: (format, entryName) => `${entryName}.${format}.js`,
       entry: path.resolve(__dirname, 'lib/index.ts'),
       formats: ['es', 'umd']
