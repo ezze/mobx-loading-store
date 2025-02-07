@@ -191,7 +191,6 @@ export abstract class LoadingStore<RequestType extends string | number = string>
     action: RequestAction<Response>,
     options?: RequestOptions<Response>
   ): Promise<Response> {
-    console.log(requestType);
     const { waitTimeout, onSuccess, onError } = options || {};
     const proceed = await this.waitForRequest(requestType, waitTimeout);
     if (!proceed) {
