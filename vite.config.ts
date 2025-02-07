@@ -20,6 +20,10 @@ export default defineConfig({
       fileName: (format, entryName) => `${entryName}.${format}.js`,
       entry: path.resolve(__dirname, 'lib/index.ts'),
       formats: ['es', 'umd']
+    },
+    rollupOptions: {
+      external: ['mobx', 'mobx-utils'],
+      output: { globals: { mobx: 'mobx', 'mobx-utils': 'mobxUtils' } }
     }
   }
 });

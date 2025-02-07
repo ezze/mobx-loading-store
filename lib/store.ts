@@ -42,11 +42,25 @@ export abstract class LoadingStore<RequestType extends string | number = string>
       initialized: observable,
       loadingMap: observable,
       errorMap: observable,
-      requestedMap: observable
+      requestedMap: observable,
+      init: action,
+      resetRequestStatus: action,
+      setLoading: action,
+      setError: action,
+      setRequested: action,
+      anyLoading: computed,
+      anyError: computed,
+      anyRequested: computed,
+      anyLoaded: computed,
+      requestAnyStatus: computed,
+      request: action,
+      requestUndefined: action,
+      onRequestSuccess: action,
+      onRequestError: action
     });
   }
 
-  @action init(): Promise<void> {
+  init(): Promise<void> {
     this.initialized = true;
     return Promise.resolve();
   }
@@ -59,7 +73,7 @@ export abstract class LoadingStore<RequestType extends string | number = string>
     // Nothing to do here at the moment
   }
 
-  @action resetRequestStatus(requestTypes: RequestType | Array<RequestType> = []): void {
+  resetRequestStatus(requestTypes: RequestType | Array<RequestType> = []): void {
     const reqTypes = Array.isArray(requestTypes) ? requestTypes : [requestTypes];
     if (reqTypes.length === 0) {
       this.loadingMap = {};
@@ -80,11 +94,11 @@ export abstract class LoadingStore<RequestType extends string | number = string>
     }
   }
 
-  @action setLoading(requestType: RequestType, loading: boolean): void {
+  setLoading(requestType: RequestType, loading: boolean): void {
     this.loadingMap[requestType] = loading;
   }
 
-  @action setError(requestType: RequestType, error?: RequestError): void {
+  setError(requestType: RequestType, error?: RequestError): void {
     if (error === undefined) {
       delete this.errorMap[requestType];
     } else {
@@ -92,7 +106,7 @@ export abstract class LoadingStore<RequestType extends string | number = string>
     }
   }
 
-  @action setRequested(requestType: RequestType, requested: boolean): void {
+  setRequested(requestType: RequestType, requested: boolean): void {
     this.requestedMap[requestType] = requested;
   }
 
@@ -100,7 +114,7 @@ export abstract class LoadingStore<RequestType extends string | number = string>
     return this.loadingMap[requestType] === true;
   });
 
-  @computed get anyLoading(): boolean {
+  get anyLoading(): boolean {
     return Object.values(this.loadingMap).includes(true);
   }
 
@@ -120,7 +134,7 @@ export abstract class LoadingStore<RequestType extends string | number = string>
     return this.errorMap[requestType]?.code;
   });
 
-  @computed get anyError(): boolean {
+  get anyError(): boolean {
     return !!Object.values(this.errorMap).find((error) => !!error);
   }
 
@@ -132,7 +146,7 @@ export abstract class LoadingStore<RequestType extends string | number = string>
     return this.requestedMap[requestType] === true;
   });
 
-  @computed get anyRequested(): boolean {
+  get anyRequested(): boolean {
     return Object.values(this.requestedMap).includes(true);
   }
 
@@ -147,7 +161,7 @@ export abstract class LoadingStore<RequestType extends string | number = string>
     return requested && !loading && !error;
   });
 
-  @computed get anyLoaded(): boolean {
+  get anyLoaded(): boolean {
     return getRecordEntries<RequestType, boolean>(this.requestedMap).some(([requestType, requested]) => {
       return requested && !this.loading(requestType) && !this.error(requestType);
     });
@@ -165,7 +179,7 @@ export abstract class LoadingStore<RequestType extends string | number = string>
     return { loading, error, requested, loaded };
   });
 
-  @computed get requestAnyStatus(): RequestStatus {
+  get requestAnyStatus(): RequestStatus {
     return {
       loading: this.anyLoading,
       error: this.anyError,
@@ -192,11 +206,12 @@ export abstract class LoadingStore<RequestType extends string | number = string>
     }
   }
 
-  @action async request<Response>(
+  async request<Response>(
     requestType: RequestType,
     action: RequestAction<Response>,
     options?: RequestOptions<Response>
   ): Promise<Response> {
+    console.log(requestType);
     const { waitTimeout, onSuccess, onError } = options || {};
     const proceed = await this.waitForRequest(requestType, waitTimeout);
     if (!proceed) {
@@ -214,7 +229,7 @@ export abstract class LoadingStore<RequestType extends string | number = string>
     }
   }
 
-  @action async requestUndefined<Response>(
+  async requestUndefined<Response>(
     requestType: RequestType,
     action: RequestAction<Response>,
     options?: RequestOptions<Response>
@@ -236,11 +251,11 @@ export abstract class LoadingStore<RequestType extends string | number = string>
     }
   }
 
-  @action onRequestSuccess<Response>(
+  onRequestSuccess<Response>(
     requestType: RequestType,
     response: Response,
     onSuccess?: (response: Response) => void
-  ) {
+  ): void {
     this.setRequested(requestType, true);
     this.setLoading(requestType, false);
     this.setError(requestType, undefined);
@@ -249,7 +264,7 @@ export abstract class LoadingStore<RequestType extends string | number = string>
     }
   }
 
-  @action onRequestError(requestType: RequestType, error: RequestError, onError?: (e: RequestError) => void) {
+  onRequestError(requestType: RequestType, error: RequestError, onError?: (e: RequestError) => void): void {
     this.setRequested(requestType, true);
     this.setLoading(requestType, false);
     this.setError(requestType, error);

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1 (2025-02-08)
+
+- Exclude `mobx` and `mobx-utils` from the build.
+
 ## 0.3.0 (2025-02-08)
 
 - Use named exports only.
