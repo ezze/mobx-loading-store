@@ -39,6 +39,10 @@
     "prepublishOnly": "pnpm build"
   },
   "prettier": "prettier-config-ezze",
+  "peerDependencies": {
+    "mobx": "^6.0.0",
+    "mobx-utils": "^6.0.0"
+  },
   "devDependencies": {
     "@stylistic/eslint-plugin-js": "^2.11.0",
     "@stylistic/eslint-plugin-ts": "^2.11.0",
@@ -53,6 +57,8 @@
     "globals": "^15.14.0",
     "jest": "^29.7.0",
     "jiti": "^2.4.2",
+    "mobx": "^6.0.0",
+    "mobx-utils": "^6.0.0",
     "prettier": "^3.4.2",
     "prettier-config-ezze": "^1.0.0",
     "ts-jest": "^29.2.5",
