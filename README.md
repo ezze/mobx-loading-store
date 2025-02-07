@@ -5,7 +5,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/ezze/mobx-loading-store/badge.svg)](https://coveralls.io/github/ezze/mobx-loading-store)
 [![](https://img.shields.io/github/license/ezze/mobx-loading-store)](https://github.com/ezze/mobx-loading-store/blob/HEAD/LICENSE.md)
 
-Use this repo as [template](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template) for new library creation:
+Abstract class for MobX store to control API requests' state out-of-the-box.
 
 ## Installation
 
