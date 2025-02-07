@@ -1,8 +1,9 @@
 # Changelog
 
-## 0.3.1 (2025-02-08)
+## 0.4.0 (2025-02-08)
 
 - Exclude `mobx` and `mobx-utils` from the build.
+- Support MobX starting with 6.11.0 when `accessor` keyword was introduced with modern 2022.3 decorators support.
 
 ## 0.3.0 (2025-02-08)
 

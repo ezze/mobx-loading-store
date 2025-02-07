@@ -48,7 +48,7 @@ importers:
         specifier: ^2.4.2
         version: 2.4.2
       mobx:
-        specifier: ^6.0.0
+        specifier: ^6.11.0
         version: 6.13.6
       mobx-utils:
         specifier: ^6.0.0

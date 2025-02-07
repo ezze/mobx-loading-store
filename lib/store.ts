@@ -26,38 +26,18 @@ const defaultRequestWaitTimeout = 30000;
 export abstract class LoadingStore<RequestType extends string | number = string> implements Store {
   requestErrorExtractor: RequestErrorExtractor;
 
-  initialized = false;
+  @observable accessor initialized = false;
 
-  loadingMap: Partial<Record<RequestType, boolean>> = {};
+  @observable accessor loadingMap: Partial<Record<RequestType, boolean>> = {};
 
-  errorMap: Partial<Record<RequestType, RequestError>> = {};
+  @observable accessor errorMap: Partial<Record<RequestType, RequestError>> = {};
 
-  requestedMap: Partial<Record<RequestType, boolean>> = {}; // shows whether data was requested at least once
+  @observable accessor requestedMap: Partial<Record<RequestType, boolean>> = {}; // shows whether data was requested at least once
 
   public constructor(options?: LoadingStoreOptions) {
     const { requestErrorExtractor } = options || {};
     this.requestErrorExtractor = requestErrorExtractor || defaultRequestErrorExtractor;
-
-    makeObservable(this, {
-      initialized: observable,
-      loadingMap: observable,
-      errorMap: observable,
-      requestedMap: observable,
-      init: action,
-      resetRequestStatus: action,
-      setLoading: action,
-      setError: action,
-      setRequested: action,
-      anyLoading: computed,
-      anyError: computed,
-      anyRequested: computed,
-      anyLoaded: computed,
-      requestAnyStatus: computed,
-      request: action,
-      requestUndefined: action,
-      onRequestSuccess: action,
-      onRequestError: action
-    });
+    makeObservable(this);
   }
 
   init(): Promise<void> {
@@ -73,7 +53,7 @@ export abstract class LoadingStore<RequestType extends string | number = string>
     // Nothing to do here at the moment
   }
 
-  resetRequestStatus(requestTypes: RequestType | Array<RequestType> = []): void {
+  @action resetRequestStatus(requestTypes: RequestType | Array<RequestType> = []): void {
     const reqTypes = Array.isArray(requestTypes) ? requestTypes : [requestTypes];
     if (reqTypes.length === 0) {
       this.loadingMap = {};
@@ -94,11 +74,11 @@ export abstract class LoadingStore<RequestType extends string | number = string>
     }
   }
 
-  setLoading(requestType: RequestType, loading: boolean): void {
+  @action setLoading(requestType: RequestType, loading: boolean): void {
     this.loadingMap[requestType] = loading;
   }
 
-  setError(requestType: RequestType, error?: RequestError): void {
+  @action setError(requestType: RequestType, error?: RequestError): void {
     if (error === undefined) {
       delete this.errorMap[requestType];
     } else {
@@ -106,7 +86,7 @@ export abstract class LoadingStore<RequestType extends string | number = string>
     }
   }
 
-  setRequested(requestType: RequestType, requested: boolean): void {
+  @action setRequested(requestType: RequestType, requested: boolean): void {
     this.requestedMap[requestType] = requested;
   }
 
@@ -114,7 +94,7 @@ export abstract class LoadingStore<RequestType extends string | number = string>
     return this.loadingMap[requestType] === true;
   });
 
-  get anyLoading(): boolean {
+  @computed get anyLoading(): boolean {
     return Object.values(this.loadingMap).includes(true);
   }
 
@@ -134,7 +114,7 @@ export abstract class LoadingStore<RequestType extends string | number = string>
     return this.errorMap[requestType]?.code;
   });
 
-  get anyError(): boolean {
+  @computed get anyError(): boolean {
     return !!Object.values(this.errorMap).find((error) => !!error);
   }
 
@@ -146,7 +126,7 @@ export abstract class LoadingStore<RequestType extends string | number = string>
     return this.requestedMap[requestType] === true;
   });
 
-  get anyRequested(): boolean {
+  @computed get anyRequested(): boolean {
     return Object.values(this.requestedMap).includes(true);
   }
 
@@ -161,7 +141,7 @@ export abstract class LoadingStore<RequestType extends string | number = string>
     return requested && !loading && !error;
   });
 
-  get anyLoaded(): boolean {
+  @computed get anyLoaded(): boolean {
     return getRecordEntries<RequestType, boolean>(this.requestedMap).some(([requestType, requested]) => {
       return requested && !this.loading(requestType) && !this.error(requestType);
     });
@@ -179,7 +159,7 @@ export abstract class LoadingStore<RequestType extends string | number = string>
     return { loading, error, requested, loaded };
   });
 
-  get requestAnyStatus(): RequestStatus {
+  @computed get requestAnyStatus(): RequestStatus {
     return {
       loading: this.anyLoading,
       error: this.anyError,
@@ -206,7 +186,7 @@ export abstract class LoadingStore<RequestType extends string | number = string>
     }
   }
 
-  async request<Response>(
+  @action async request<Response>(
     requestType: RequestType,
     action: RequestAction<Response>,
     options?: RequestOptions<Response>
@@ -229,7 +209,7 @@ export abstract class LoadingStore<RequestType extends string | number = string>
     }
   }
 
-  async requestUndefined<Response>(
+  @action async requestUndefined<Response>(
     requestType: RequestType,
     action: RequestAction<Response>,
     options?: RequestOptions<Response>
@@ -251,7 +231,7 @@ export abstract class LoadingStore<RequestType extends string | number = string>
     }
   }
 
-  onRequestSuccess<Response>(
+  @action onRequestSuccess<Response>(
     requestType: RequestType,
     response: Response,
     onSuccess?: (response: Response) => void
@@ -264,7 +244,7 @@ export abstract class LoadingStore<RequestType extends string | number = string>
     }
   }
 
-  onRequestError(requestType: RequestType, error: RequestError, onError?: (e: RequestError) => void): void {
+  @action onRequestError(requestType: RequestType, error: RequestError, onError?: (e: RequestError) => void): void {
     this.setRequested(requestType, true);
     this.setLoading(requestType, false);
     this.setError(requestType, error);
