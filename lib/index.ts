@@ -22,18 +22,24 @@ const defaultRequestWaitTimeout = 30000;
 export abstract class LoadingStore<RequestType extends string | number = string> implements Store {
   requestErrorExtractor: RequestErrorExtractor;
 
-  @observable initialized = false;
+  initialized = false;
 
-  @observable loadingMap: Partial<Record<RequestType, boolean>> = {};
+  loadingMap: Partial<Record<RequestType, boolean>> = {};
 
-  @observable errorMap: Partial<Record<RequestType, RequestError>> = {};
+  errorMap: Partial<Record<RequestType, RequestError>> = {};
 
-  @observable requestedMap: Partial<Record<RequestType, boolean>> = {}; // shows whether data was requested at least once
+  requestedMap: Partial<Record<RequestType, boolean>> = {}; // shows whether data was requested at least once
 
   public constructor(options?: LoadingStoreOptions) {
     const { requestErrorExtractor } = options || {};
     this.requestErrorExtractor = requestErrorExtractor || defaultRequestErrorExtractor;
-    makeObservable(this);
+
+    makeObservable(this, {
+      initialized: observable,
+      loadingMap: observable,
+      errorMap: observable,
+      requestedMap: observable
+    });
   }
 
   @action init(): Promise<void> {
