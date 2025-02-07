@@ -1,4 +1,4 @@
-import { RecordEntryKey } from './types.ts';
+import { AxiosError, RecordEntryKey } from './types.ts';
 
 const entryKeyRegExp = /^\d+$/;
 
@@ -14,4 +14,8 @@ export function getRecordEntries<K extends RecordEntryKey, V = unknown>(
     const [key, value] = entry;
     return [(entryKeyRegExp.test(key) ? Number(key) : key) as K, value as V];
   });
+}
+
+export function isAxiosError<T = unknown>(payload: unknown): payload is AxiosError<T> {
+  return payload !== null && typeof payload === 'object' && 'isAxiosError' in payload && payload.isAxiosError === true;
 }

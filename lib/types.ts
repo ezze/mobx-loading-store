@@ -25,8 +25,27 @@ export type RequestStatus = {
   loaded: boolean;
 };
 
-export type RequestErrorExtractor = (e: unknown) => RequestError;
+export type RequestErrorExtractor = (e: unknown) => RequestError | undefined;
 
 export type LoadingStoreOptions = {
   requestErrorExtractor?: RequestErrorExtractor;
 };
+
+// Axios related types
+export interface AxiosResponse<T = unknown> {
+  data: T;
+  status: number;
+  statusText: string;
+  headers: unknown;
+  config: unknown;
+  request?: unknown; // The request object (e.g., XMLHttpRequest or Node.js HTTP request)
+}
+
+export interface AxiosError<T = unknown> extends Error {
+  config: unknown;
+  code?: string | null;
+  request?: unknown;
+  response?: AxiosResponse<T>;
+  isAxiosError: true;
+  toJSON: () => object;
+}

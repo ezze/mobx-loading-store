@@ -11,10 +11,14 @@ import {
   RequestStatus,
   Store
 } from './types';
-import { getRecordEntries } from './utils';
+import { getRecordEntries, isAxiosError } from './utils';
 
-const defaultRequestErrorExtractor: RequestErrorExtractor = (e: unknown): RequestError => {
-  return { instance: e, code: -1 };
+const defaultRequestErrorExtractor: RequestErrorExtractor = (e: unknown): RequestError | undefined => {
+  if (isAxiosError(e) && e.response) {
+    const { data, status } = e.response;
+    return { instance: data, code: status };
+  }
+  return undefined;
 };
 
 const defaultRequestWaitTimeout = 30000;
@@ -183,7 +187,7 @@ export abstract class LoadingStore<RequestType extends string | number = string>
     try {
       await when(() => !this.loading(requestType), { timeout });
       return true;
-    } catch (e) {
+    } catch (_) {
       return false;
     }
   }
@@ -204,7 +208,7 @@ export abstract class LoadingStore<RequestType extends string | number = string>
       this.onRequestSuccess(requestType, response, onSuccess);
       return response;
     } catch (e) {
-      const error = this.requestErrorExtractor(e);
+      const error = this.requestErrorExtractor(e) || { instance: e, code: -1 };
       this.onRequestError(requestType, error, onError);
       throw new LoadingStoreRequestError(`Request "${requestType}" failed`, requestType, error);
     }
@@ -226,7 +230,7 @@ export abstract class LoadingStore<RequestType extends string | number = string>
       this.onRequestSuccess(requestType, response, onSuccess);
       return response;
     } catch (e) {
-      const error = this.requestErrorExtractor(e);
+      const error = this.requestErrorExtractor(e) || { instance: e, code: -1 };
       this.onRequestError(requestType, error, onError);
       return undefined;
     }
