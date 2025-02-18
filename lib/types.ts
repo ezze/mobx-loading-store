@@ -22,6 +22,7 @@ export type RequestStatus = {
   loading: boolean;
   error: boolean;
   requested: boolean;
+  loadedOnce: boolean;
   loaded: boolean;
 };
 
