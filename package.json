@@ -1,6 +1,6 @@
 {
   "name": "mobx-loading-store",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Abstract class for MobX store to control API requests' state out-of-the-box",
   "keywords": [
     "mobx",
@@ -24,8 +24,12 @@
   },
   "license": "MIT",
   "type": "module",
-  "main": "dist/index.umd.js",
+  "main": "dist/index.cjs",
   "module": "dist/index.es.js",
+  "exports": {
+    "require": "./dist/index.cjs",
+    "import": "./dist/index.es.js"
+  },
   "types": "dist/index.d.ts",
   "files": [
     "dist"
