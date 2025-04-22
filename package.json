@@ -24,8 +24,12 @@
   },
   "license": "MIT",
   "type": "module",
-  "main": "dist/index.umd.js",
+  "main": "dist/index.cjs",
   "module": "dist/index.es.js",
+  "exports": {
+    "require": "./dist/index.cjs",
+    "import": "./dist/index.es.js"
+  },
   "types": "dist/index.d.ts",
   "files": [
     "dist"
