@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.0 (2025-04-23)
+
+- `loadedOnce` and `errorOnce` request states are added.
+
 ## 0.4.0 (2025-02-08)
 
 - Exclude `mobx` and `mobx-utils` from the build.
