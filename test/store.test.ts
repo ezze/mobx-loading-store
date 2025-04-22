@@ -202,6 +202,38 @@ describe('loading store', () => {
     expect(request).toHaveBeenCalledTimes(1);
   });
 
+  describe('reset request status', () => {
+    async function executeTest(singleReset: boolean): Promise<void> {
+      anotherRequest.mockImplementationOnce(async () => {
+        await delay(200);
+        throw new Error('Error');
+      });
+
+      const store = new Store();
+
+      await expectStatus(store, 'request', initialRequestStatus);
+      await expectStatus(store, 'anotherRequest', initialRequestStatus);
+
+      store.makeRequest();
+      const anotherPromise = store.makeAnotherRequest();
+
+      expectPromiseToReject(anotherPromise);
+
+      await runAllTimers();
+
+      await expectStatus(store, 'request', singleSuccessRequestStatus);
+      await expectStatus(store, 'anotherRequest', singleErrorRequestStatus);
+
+      store.resetRequestStatus(singleReset ? 'request' : undefined);
+
+      await expectStatus(store, 'request', initialRequestStatus);
+      await expectStatus(store, 'anotherRequest', singleReset ? singleErrorRequestStatus : initialRequestStatus);
+    }
+
+    test('multiple reset', () => executeTest(true));
+    test('single reset', () => executeTest(true));
+  });
+
   describe('callbacks', () => {
     test('successful callback', async () => {
       const store = new Store();
@@ -221,7 +253,7 @@ describe('loading store', () => {
     test('error callback', async () => {
       request.mockImplementationOnce(async () => {
         await delay(100);
-        throw new Request("Something's going really wrong");
+        throw new Error("Something's going really wrong");
       });
 
       const store = new Store();

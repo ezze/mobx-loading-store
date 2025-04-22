@@ -1,7 +1,12 @@
 import { action, computed, observable, when } from 'mobx';
 import { computedFn } from 'mobx-utils';
 
-import { LoadingStoreRequestError, LoadingStoreRequestWaitTimeoutError } from './error.ts';
+import { DEFAULT_REQUEST_WAIT_TIMEOUT } from './const.ts';
+import {
+  defaultRequestErrorExtractor,
+  LoadingStoreRequestError,
+  LoadingStoreRequestWaitTimeoutError
+} from './error.ts';
 import {
   LoadingStoreOptions,
   RequestAction,
@@ -11,17 +16,7 @@ import {
   RequestStatus,
   Store
 } from './types';
-import { getRecordEntries, isAxiosError } from './utils';
-
-const defaultRequestErrorExtractor: RequestErrorExtractor = (e: unknown): RequestError | undefined => {
-  if (isAxiosError(e) && e.response) {
-    const { data, status } = e.response;
-    return { instance: data, code: status };
-  }
-  return undefined;
-};
-
-const defaultRequestWaitTimeout = 30000;
+import { getRecordEntries } from './utils';
 
 export abstract class LoadingStore<RequestType extends string | number = string> implements Store {
   requestErrorExtractor: RequestErrorExtractor;
@@ -237,7 +232,7 @@ export abstract class LoadingStore<RequestType extends string | number = string>
     };
   });
 
-  async waitForRequest(requestType: RequestType, timeout = defaultRequestWaitTimeout): Promise<boolean> {
+  async waitForRequest(requestType: RequestType, timeout = DEFAULT_REQUEST_WAIT_TIMEOUT): Promise<boolean> {
     try {
       await when(() => !this.loading(requestType), { timeout });
       return true;
