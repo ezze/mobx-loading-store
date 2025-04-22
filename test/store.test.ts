@@ -1,6 +1,12 @@
-import { LoadingStore } from '../lib/store';
+import { LoadingStore } from '../lib';
 import { RequestOptions, RequestStatus } from '../lib/types';
 
+import {
+  initialLoadingRequestStatus,
+  initialRequestStatus,
+  singleErrorRequestStatus,
+  singleSuccessRequestStatus
+} from './const';
 import {
   advanceTimers,
   expectError,
@@ -65,15 +71,21 @@ describe('loading store', () => {
 
   test('single successful request', async () => {
     const store = new Store();
-    await expectStatus(store, 'request', { loading: false, error: false, requested: false, loaded: false });
+
+    await expectStatus(store, 'request', initialRequestStatus);
+
     const promise = store.makeRequest();
     expect(await promiseStatus(promise)).toBe('pending');
+
     await advanceTimers(50);
+
     expect(await promiseStatus(promise)).toBe('pending');
-    await expectStatus(store, 'request', { loading: true, error: false, requested: false, loaded: false });
+    await expectStatus(store, 'request', initialLoadingRequestStatus);
+
     await runAllTimers();
+
     expect(await promiseStatus(promise)).toBe('fulfilled');
-    await expectStatus(store, 'request', { loading: false, error: false, requested: true, loaded: true });
+    await expectStatus(store, 'request', singleSuccessRequestStatus);
     expect(await promise).toBe('response');
     expect(request).toHaveBeenCalledTimes(1);
   });
@@ -83,40 +95,56 @@ describe('loading store', () => {
       await delay(100);
       throw new TypeError("Something's going wrong");
     });
+
     const store = new Store();
-    await expectStatus(store, 'request', { loading: false, error: false, requested: false, loaded: false });
+
+    await expectStatus(store, 'request', initialRequestStatus);
+
     const promise = store.makeRequest();
+
     expect(await promiseStatus(promise)).toBe('pending');
     expectPromiseToReject(promise, 'Request "request" failed');
+
     await advanceTimers(50);
+
     expect(await promiseStatus(promise)).toBe('pending');
-    await expectStatus(store, 'request', { loading: true, error: false, requested: false, loaded: false });
+    await expectStatus(store, 'request', initialLoadingRequestStatus);
+
     await runAllTimers();
+
     expect(await promiseStatus(promise)).toBe('rejected');
-    await expectStatus(store, 'request', { loading: false, error: true, requested: true, loaded: false });
+    await expectStatus(store, 'request', singleErrorRequestStatus);
     expect(request).toHaveBeenCalledTimes(1);
     await wrapComputed(() => expectError(store.errorInstance('request'), "Something's going wrong"));
   });
 
   test('two concurrent successful requests of the different types', async () => {
     const store = new Store();
-    await expectStatus(store, 'request', { loading: false, error: false, requested: false, loaded: false });
-    await expectStatus(store, 'anotherRequest', { loading: false, error: false, requested: false, loaded: false });
-    expect(store.requestAnyStatus).toStrictEqual({ loading: false, error: false, requested: false, loaded: false });
+
+    await expectStatus(store, 'request', initialRequestStatus);
+    await expectStatus(store, 'anotherRequest', initialRequestStatus);
+    expect(store.requestAnyStatus).toStrictEqual(initialRequestStatus);
+
     const promise = store.makeRequest();
     const anotherPromise = store.makeAnotherRequest();
+
     await advanceTimers(50);
-    await expectStatus(store, 'request', { loading: true, error: false, requested: false, loaded: false });
-    await expectStatus(store, 'anotherRequest', { loading: true, error: false, requested: false, loaded: false });
-    expect(store.requestAnyStatus).toStrictEqual({ loading: true, error: false, requested: false, loaded: false });
+
+    await expectStatus(store, 'request', initialLoadingRequestStatus);
+    await expectStatus(store, 'anotherRequest', initialLoadingRequestStatus);
+    expect(store.requestAnyStatus).toStrictEqual(initialLoadingRequestStatus);
+
     await advanceTimers(100);
-    await expectStatus(store, 'request', { loading: false, error: false, requested: true, loaded: true });
-    await expectStatus(store, 'anotherRequest', { loading: true, error: false, requested: false, loaded: false });
-    expect(store.requestAnyStatus).toStrictEqual({ loading: true, error: false, requested: true, loaded: true });
+
+    await expectStatus(store, 'request', singleSuccessRequestStatus);
+    await expectStatus(store, 'anotherRequest', initialLoadingRequestStatus);
+    expect(store.requestAnyStatus).toStrictEqual({ ...singleSuccessRequestStatus, loading: true });
+
     await runAllTimers();
-    await expectStatus(store, 'request', { loading: false, error: false, requested: true, loaded: true });
-    await expectStatus(store, 'anotherRequest', { loading: false, error: false, requested: true, loaded: true });
-    expect(store.requestAnyStatus).toStrictEqual({ loading: false, error: false, requested: true, loaded: true });
+
+    await expectStatus(store, 'request', singleSuccessRequestStatus);
+    await expectStatus(store, 'anotherRequest', singleSuccessRequestStatus);
+    expect(store.requestAnyStatus).toStrictEqual(singleSuccessRequestStatus);
     expect(await promise).toBe('response');
     expect(await anotherPromise).toBe('another-response');
     expect(request).toHaveBeenCalledTimes(1);
@@ -125,44 +153,73 @@ describe('loading store', () => {
 
   test('concurrent successful requests of the same type', async () => {
     const store = new Store();
-    await expectStatus(store, 'request', { loading: false, error: false, requested: false, loaded: false });
+
+    await expectStatus(store, 'request', initialRequestStatus);
+
     const promise1 = store.makeRequest();
+
     expect(await promiseStatus(promise1)).toBe('pending');
+
     await advanceTimers(50);
+
     expect(await promiseStatus(promise1)).toBe('pending');
-    await expectStatus(store, 'request', { loading: true, error: false, requested: false, loaded: false });
+    await expectStatus(store, 'request', initialLoadingRequestStatus);
+
     const promise2 = store.makeRequest();
+
     expect(await promiseStatus(promise1)).toBe('pending');
     expect(await promiseStatus(promise2)).toBe('pending');
+
     await advanceTimers(50);
+
     expect(await promiseStatus(promise1)).toBe('fulfilled');
     expect(await promiseStatus(promise2)).toBe('pending');
-    await expectStatus(store, 'request', { loading: true, error: false, requested: true, loaded: false });
+    await expectStatus(store, 'request', { ...singleSuccessRequestStatus, loading: true, loaded: false });
+
     await runAllTimers();
+
     expect(await promiseStatus(promise2)).toBe('fulfilled');
-    await expectStatus(store, 'request', { loading: false, error: false, requested: true, loaded: true });
+    await expectStatus(store, 'request', singleSuccessRequestStatus);
     expect(request).toHaveBeenCalledTimes(2);
   });
 
   test('timed out concurrent request of the same type', async () => {
     const store = new Store();
-    await expectStatus(store, 'request', { loading: false, error: false, requested: false, loaded: false });
+
+    await expectStatus(store, 'request', initialRequestStatus);
+
     const promise1 = store.makeRequest();
+
     expect(await promiseStatus(promise1)).toBe('pending');
+
     await advanceTimers(50);
-    await expectStatus(store, 'request', { loading: true, error: false, requested: false, loaded: false });
+
+    await expectStatus(store, 'request', initialLoadingRequestStatus);
+
     const promise2 = store.makeRequest({ waitTimeout: 25 });
+
     expect(await promiseStatus(promise1)).toBe('pending');
     expect(await promiseStatus(promise2)).toBe('pending');
+
     await advanceTimers(30);
+
     expect(await promiseStatus(promise1)).toBe('pending');
     expect(await promiseStatus(promise2)).toBe('rejected');
-    await expectStatus(store, 'request', { loading: true, error: false, requested: false, loaded: false });
+    await expectStatus(store, 'request', initialLoadingRequestStatus);
+
     await runAllTimers();
+
     expect(await promiseStatus(promise1)).toBe('fulfilled');
     expect(await promiseStatus(promise2)).toBe('rejected');
     expectPromiseToReject(promise2, 'Request "request" is timed out');
-    await expectStatus(store, 'request', { loading: false, error: false, requested: true, loaded: true });
+    await expectStatus(store, 'request', {
+      requested: true,
+      loading: false,
+      loaded: true,
+      loadedOnce: true,
+      error: false,
+      errorOnce: false
+    });
     expect(request).toHaveBeenCalledTimes(1);
   });
 });

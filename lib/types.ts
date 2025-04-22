@@ -20,10 +20,11 @@ export type RequestOptions<Response> = {
 
 export type RequestStatus = {
   loading: boolean;
-  error: boolean;
   requested: boolean;
-  loadedOnce: boolean;
   loaded: boolean;
+  loadedOnce: boolean;
+  error: boolean;
+  errorOnce: boolean;
 };
 
 export type RequestErrorExtractor = (e: unknown) => RequestError | undefined;
