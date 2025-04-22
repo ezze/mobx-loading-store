@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.0 (2025-04-23)
+
+- `loadedOnce` and `errorOnce` request states are added.
+- `makeObservable(this)` is not used anymore.
+
 ## 0.5.0 (2025-04-18)
 
 - Add library `exports` property to `package.json`, specify Common.js module in `main`.

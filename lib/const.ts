@@ -1,0 +1,1 @@
+export const DEFAULT_REQUEST_WAIT_TIMEOUT = 30000;

@@ -98,3 +98,9 @@ export function wrapComputed(fn: () => void): Promise<void> {
     });
   });
 }
+
+export function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    global.setTimeout(resolve, ms);
+  });
+}

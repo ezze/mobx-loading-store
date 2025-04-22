@@ -1,7 +1,12 @@
-import { action, computed, makeObservable, observable, when } from 'mobx';
+import { action, computed, observable, when } from 'mobx';
 import { computedFn } from 'mobx-utils';
 
-import { LoadingStoreRequestError, LoadingStoreRequestWaitTimeoutError } from './error.ts';
+import { DEFAULT_REQUEST_WAIT_TIMEOUT } from './const.ts';
+import {
+  defaultRequestErrorExtractor,
+  LoadingStoreRequestError,
+  LoadingStoreRequestWaitTimeoutError
+} from './error.ts';
 import {
   LoadingStoreOptions,
   RequestAction,
@@ -11,33 +16,26 @@ import {
   RequestStatus,
   Store
 } from './types';
-import { getRecordEntries, isAxiosError } from './utils';
-
-const defaultRequestErrorExtractor: RequestErrorExtractor = (e: unknown): RequestError | undefined => {
-  if (isAxiosError(e) && e.response) {
-    const { data, status } = e.response;
-    return { instance: data, code: status };
-  }
-  return undefined;
-};
-
-const defaultRequestWaitTimeout = 30000;
+import { getRecordEntries } from './utils';
 
 export abstract class LoadingStore<RequestType extends string | number = string> implements Store {
   requestErrorExtractor: RequestErrorExtractor;
 
   @observable accessor initialized = false;
 
+  @observable accessor requestedMap: Partial<Record<RequestType, boolean>> = {}; // shows whether data was requested at least once
+
   @observable accessor loadingMap: Partial<Record<RequestType, boolean>> = {};
+
+  @observable accessor loadedOnceMap: Partial<Record<RequestType, boolean>> = {}; // shows whether data was loaded at least once
 
   @observable accessor errorMap: Partial<Record<RequestType, RequestError>> = {};
 
-  @observable accessor requestedMap: Partial<Record<RequestType, boolean>> = {}; // shows whether data was requested at least once
+  @observable accessor errorOnceMap: Partial<Record<RequestType, boolean>> = {}; // show whether data was failed to load at least once
 
   public constructor(options?: LoadingStoreOptions) {
     const { requestErrorExtractor } = options || {};
     this.requestErrorExtractor = requestErrorExtractor || defaultRequestErrorExtractor;
-    makeObservable(this);
   }
 
   init(): Promise<void> {
@@ -56,29 +54,47 @@ export abstract class LoadingStore<RequestType extends string | number = string>
   @action resetRequestStatus(requestTypes: RequestType | Array<RequestType> = []): void {
     const reqTypes = Array.isArray(requestTypes) ? requestTypes : [requestTypes];
     if (reqTypes.length === 0) {
-      this.loadingMap = {};
-      this.errorMap = {};
       this.requestedMap = {};
+      this.loadingMap = {};
+      this.loadedOnceMap = {};
+      this.errorMap = {};
+      this.errorOnceMap = {};
     } else {
       reqTypes.forEach((requestType) => {
+        if (this.requestedMap[requestType]) {
+          delete this.requestedMap[requestType];
+        }
         if (this.loadingMap[requestType]) {
           delete this.loadingMap[requestType];
+        }
+        if (this.loadedOnceMap[requestType]) {
+          delete this.loadedOnceMap[requestType];
         }
         if (this.errorMap[requestType]) {
           delete this.errorMap[requestType];
         }
-        if (this.requestedMap[requestType]) {
-          delete this.requestedMap[requestType];
+        if (this.errorOnceMap[requestType]) {
+          delete this.errorOnceMap[requestType];
         }
       });
     }
   }
 
-  @action setLoading(requestType: RequestType, loading: boolean): void {
+  // Internal actions to alter request status
+
+  @action protected setRequested(requestType: RequestType, requested: boolean): void {
+    this.requestedMap[requestType] = requested;
+  }
+
+  @action protected setLoading(requestType: RequestType, loading: boolean): void {
     this.loadingMap[requestType] = loading;
   }
 
-  @action setError(requestType: RequestType, error?: RequestError): void {
+  @action protected setLoadedOnce(requestType: RequestType, loadedOnce: boolean): void {
+    this.loadedOnceMap[requestType] = loadedOnce;
+  }
+
+  @action protected setError(requestType: RequestType, error?: RequestError): void {
     if (error === undefined) {
       delete this.errorMap[requestType];
     } else {
@@ -86,10 +102,26 @@ export abstract class LoadingStore<RequestType extends string | number = string>
     }
   }
 
-  @action setRequested(requestType: RequestType, requested: boolean): void {
-    this.requestedMap[requestType] = requested;
+  @action protected setErrorOnce(requestType: RequestType, errorOnce: boolean): void {
+    this.errorOnceMap[requestType] = errorOnce;
   }
 
+  // Request status computed properties and functions:
+
+  // Requested
+  requested = computedFn((requestType: RequestType): boolean => {
+    return this.requestedMap[requestType] === true;
+  });
+
+  @computed get anyRequested(): boolean {
+    return Object.values(this.requestedMap).includes(true);
+  }
+
+  anyOfRequested = computedFn((requestTypes: Array<RequestType>): boolean => {
+    return requestTypes.some((requestType) => this.requestedMap[requestType] === true);
+  });
+
+  // Loading
   loading = computedFn((requestType: RequestType): boolean => {
     return this.loadingMap[requestType] === true;
   });
@@ -102,6 +134,38 @@ export abstract class LoadingStore<RequestType extends string | number = string>
     return requestTypes.some((requestType) => this.loadingMap[requestType] === true);
   });
 
+  // Loaded
+  loaded = computedFn((requestType: RequestType): boolean => {
+    const loading = this.loading(requestType);
+    const error = this.error(requestType);
+    const requested = this.requested(requestType);
+    return requested && !loading && !error;
+  });
+
+  @computed get anyLoaded(): boolean {
+    return getRecordEntries<RequestType, boolean>(this.requestedMap).some(([requestType, requested]) => {
+      return requested && !this.loading(requestType) && !this.error(requestType);
+    });
+  }
+
+  anyOfLoaded = computedFn((requestTypes: Array<RequestType>): boolean => {
+    return this.anyOfRequested(requestTypes) && !this.anyOfLoading(requestTypes) && !this.anyOfError(requestTypes);
+  });
+
+  // Loaded once
+  loadedOnce = computedFn((requestType: RequestType): boolean => {
+    return this.loadedOnceMap[requestType] === true;
+  });
+
+  @computed get anyLoadedOnce(): boolean {
+    return Object.values(this.loadedOnceMap).includes(true);
+  }
+
+  anyOfLoadedOnce = computedFn((requestTypes: Array<RequestType>): boolean => {
+    return requestTypes.some((requestType) => this.loadedOnceMap[requestType] === true);
+  });
+
+  // Error
   error = computedFn((requestType: RequestType): boolean => {
     return !!this.errorMap[requestType];
   });
@@ -122,62 +186,53 @@ export abstract class LoadingStore<RequestType extends string | number = string>
     return requestTypes.some((requestType) => !!this.errorMap[requestType]);
   });
 
-  requested = computedFn((requestType: RequestType): boolean => {
-    return this.requestedMap[requestType] === true;
+  // Error once
+  errorOnce = computedFn((requestType: RequestType): boolean => {
+    return this.errorOnceMap[requestType] === true;
   });
 
-  @computed get anyRequested(): boolean {
-    return Object.values(this.requestedMap).includes(true);
+  @computed get anyErrorOnce(): boolean {
+    return Object.values(this.errorOnceMap).includes(true);
   }
 
-  anyOfRequested = computedFn((requestTypes: Array<RequestType>): boolean => {
-    return requestTypes.some((requestType) => this.requestedMap[requestType] === true);
+  anyOfErrorOnce = computedFn((requestTypes: Array<RequestType>): boolean => {
+    return requestTypes.some((requestType) => this.errorOnceMap[requestType] === true);
   });
 
-  loaded = computedFn((requestType: RequestType): boolean => {
-    const loading = this.loading(requestType);
-    const error = this.error(requestType);
-    const requested = this.requested(requestType);
-    return requested && !loading && !error;
-  });
-
-  @computed get anyLoaded(): boolean {
-    return getRecordEntries<RequestType, boolean>(this.requestedMap).some(([requestType, requested]) => {
-      return requested && !this.loading(requestType) && !this.error(requestType);
-    });
-  }
-
-  anyOfLoaded = computedFn((requestTypes: Array<RequestType>): boolean => {
-    return this.anyOfRequested(requestTypes) && !this.anyOfLoading(requestTypes) && !this.anyOfError(requestTypes);
-  });
-
+  // Combined request status
   requestStatus = computedFn((requestType: RequestType): RequestStatus => {
-    const loading = this.loading(requestType);
-    const error = this.error(requestType);
     const requested = this.requested(requestType);
+    const loading = this.loading(requestType);
     const loaded = this.loaded(requestType);
-    return { loading, error, requested, loaded };
+    const loadedOnce = this.loadedOnce(requestType);
+    const error = this.error(requestType);
+    const errorOnce = this.errorOnce(requestType);
+    return { requested, loading, loaded, loadedOnce, error, errorOnce };
   });
 
   @computed get requestAnyStatus(): RequestStatus {
     return {
-      loading: this.anyLoading,
-      error: this.anyError,
       requested: this.anyRequested,
-      loaded: this.anyLoaded
+      loading: this.anyLoading,
+      loaded: this.anyLoaded,
+      loadedOnce: this.anyLoadedOnce,
+      error: this.anyError,
+      errorOnce: this.anyErrorOnce
     };
   }
 
   requestAnyOfStatus = computedFn((requestTypes: Array<RequestType>): RequestStatus => {
     return {
-      loading: this.anyOfLoading(requestTypes),
-      error: this.anyOfError(requestTypes),
       requested: this.anyOfRequested(requestTypes),
-      loaded: this.anyOfLoaded(requestTypes)
+      loading: this.anyOfLoading(requestTypes),
+      loaded: this.anyOfLoaded(requestTypes),
+      loadedOnce: this.anyOfLoadedOnce(requestTypes),
+      error: this.anyOfError(requestTypes),
+      errorOnce: this.anyOfErrorOnce(requestTypes)
     };
   });
 
-  async waitForRequest(requestType: RequestType, timeout = defaultRequestWaitTimeout): Promise<boolean> {
+  async waitForRequest(requestType: RequestType, timeout = DEFAULT_REQUEST_WAIT_TIMEOUT): Promise<boolean> {
     try {
       await when(() => !this.loading(requestType), { timeout });
       return true;
@@ -237,6 +292,7 @@ export abstract class LoadingStore<RequestType extends string | number = string>
   ): void {
     this.setRequested(requestType, true);
     this.setLoading(requestType, false);
+    this.setLoadedOnce(requestType, true);
     this.setError(requestType, undefined);
     if (onSuccess) {
       onSuccess(response);
@@ -247,6 +303,7 @@ export abstract class LoadingStore<RequestType extends string | number = string>
     this.setRequested(requestType, true);
     this.setLoading(requestType, false);
     this.setError(requestType, error);
+    this.setErrorOnce(requestType, true);
     if (onError) {
       onError(error);
     }

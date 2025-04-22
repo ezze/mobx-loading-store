@@ -71,25 +71,29 @@ export const UserName = observer(() => {
 
 Each request's status is an `@observable` object of `RequestStatus` type consisting of the following boolean flags:
 
+- `requested` — at least one request done, no matter whether it was successful or ended with error;
 - `loading` — request is executing;
-- `error` — request is added with error;
-- `requested` — at least one request done, no matter whether it was successful or failed;
-- `loaded` — latest request is successful (shorthand for `requested && !loading && !error`);
+- `loaded` — latest request was successful (shorthand for `requested && !loading && !error`);
+- `loadedOnce' — request was successful at least once;
+- `error` — latest request is ended with error;
+- `errorOnce` — request is ended with error at least once.
 
 Request status can be retrieved at once by calling `requestStatus()`:
 
 ```typescript
 const requestStatus = userStore.requestStatus('load');
-const { loading, error, requested, loaded } = requestStatus;
+const { requested, loading, loaded, loadedOnce, error, errorOnce } = requestStatus;
 ```
 
 Each request status flag can be retrieved separately:
 
 ```typescript
-const loading = userStore.loading('load');
-const error = userStore.error('load');
 const requested = userStore.requested('load');
+const loading = userStore.loading('load');
 const loaded = userStore.loaded('load');
+const loadedOnce = userStore.loadedOnce('load');
+const error = userStore.error('load');
+const errorOnce = userStore.errorOnce('load');
 ```
 
 If store can execute few requests of different types the following can be used to detect whether at least one request has corresponding status flag set to `true`:
@@ -98,7 +102,7 @@ If store can execute few requests of different types the following can be used t
 const requestStatus = userStore.requestAnyStatus;
 ```
 
-Corresponding separate properties are `anyLoading`, `anyError`, `anyRequested` and `anyLoaded`.
+Corresponding separate properties are `anyRequested`, `anyLoading`, `anyLoaded`, `anyLoadedOnce`, `anyError` and `anyErrorOnce`.
 
 If you want to get the same request status combing only specific requests then `requestAnyOfStatus()` can be used:
 
@@ -106,7 +110,7 @@ If you want to get the same request status combing only specific requests then `
 const requestStatus = userStore.requestAnyOfStatus(['load', 'save']);
 ```
 
-Corresponding separate methods are `anyOfLoading()`, `anyOfError()`, `anyOfRequested()` and `anyOfLoaded()`.
+Corresponding separate methods are  `anyOfRequested()`, `anyOfLoading()`, `anyOfLoaded()`, `anyOfLoadedOnce()`, `anyOfError()`, and `anyOfErrorOnce()`.
 
 If the latest request is ended with error (`error === true`) one can get error code and error instance:
 
