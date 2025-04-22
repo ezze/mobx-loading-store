@@ -1,3 +1,5 @@
+import { reaction } from 'mobx';
+
 import { RequestStatus } from '../lib/types';
 
 import {
@@ -270,5 +272,23 @@ describe('loading store', () => {
       expect(onError).toHaveBeenCalledTimes(1);
       expect(onError).toHaveBeenCalledWith({ code: -1, instance: new TypeError("Something's going really wrong") });
     });
+  });
+
+  test('react to request status changes', async () => {
+    const store = new Store();
+
+    const reactionFn = jest.fn();
+
+    const dispose = reaction(() => store.loading('request'), reactionFn);
+
+    store.makeRequest();
+
+    await runAllTimers();
+
+    expect(reactionFn).toHaveBeenCalledTimes(2);
+    expect(reactionFn).toHaveBeenNthCalledWith(1, true, false, expect.anything());
+    expect(reactionFn).toHaveBeenNthCalledWith(2, false, true, expect.anything());
+
+    dispose();
   });
 });
