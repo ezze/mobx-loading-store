@@ -1,5 +1,4 @@
-import { LoadingStore } from '../lib';
-import { RequestOptions, RequestStatus } from '../lib/types';
+import { RequestStatus } from '../lib/types';
 
 import {
   initialLoadingRequestStatus,
@@ -9,6 +8,7 @@ import {
 } from './const';
 import {
   advanceTimers,
+  delay,
   expectError,
   expectPromiseToReject,
   promiseStatus,
@@ -16,29 +16,11 @@ import {
   runOnlyPendingTimers,
   wrapComputed
 } from './helpers';
+import { anotherRequest, request, yetAnotherRequest } from './mocks';
+import { Store } from './store';
+import { RequestType } from './types';
 
 describe('loading store', () => {
-  type RequestType = 'request' | 'anotherRequest' | 'yetAnotherRequest';
-
-  function delay(ms: number): Promise<void> {
-    return new Promise((resolve) => {
-      global.setTimeout(resolve, ms);
-    });
-  }
-
-  const request = jest.fn(async () => {
-    await delay(100);
-    return 'response';
-  });
-  const anotherRequest = jest.fn(async () => {
-    await delay(200);
-    return 'another-response';
-  });
-  const yetAnotherRequest = jest.fn(async () => {
-    await delay(300);
-    return 'yet-another-response';
-  });
-
   beforeEach(() => {
     request.mockClear();
     anotherRequest.mockClear();
@@ -51,71 +33,75 @@ describe('loading store', () => {
     jest.useRealTimers();
   });
 
-  class Store extends LoadingStore<RequestType> {
-    makeRequest(options?: RequestOptions<string>): Promise<string> {
-      return this.request('request', request, options);
-    }
-
-    makeAnotherRequest(options?: RequestOptions<string>): Promise<string> {
-      return this.request('anotherRequest', anotherRequest, options);
-    }
-
-    makeYetAnotherRequest(options?: RequestOptions<string>): Promise<string> {
-      return this.request('yetAnotherRequest', yetAnotherRequest, options);
-    }
-  }
-
   function expectStatus(store: Store, requestType: RequestType, requestStatus: RequestStatus): Promise<void> {
     return wrapComputed(() => expect(store.requestStatus(requestType)).toStrictEqual(requestStatus));
   }
 
-  test('single successful request', async () => {
-    const store = new Store();
+  describe('single successful request', () => {
+    async function executeTest(undefinedOnFailure: boolean): Promise<void> {
+      const store = new Store();
 
-    await expectStatus(store, 'request', initialRequestStatus);
+      await expectStatus(store, 'request', initialRequestStatus);
 
-    const promise = store.makeRequest();
-    expect(await promiseStatus(promise)).toBe('pending');
+      const promise = undefinedOnFailure ? store.makeRequestUndefined() : store.makeRequest();
+      expect(await promiseStatus(promise)).toBe('pending');
 
-    await advanceTimers(50);
+      await advanceTimers(50);
 
-    expect(await promiseStatus(promise)).toBe('pending');
-    await expectStatus(store, 'request', initialLoadingRequestStatus);
+      expect(await promiseStatus(promise)).toBe('pending');
+      await expectStatus(store, 'request', initialLoadingRequestStatus);
 
-    await runAllTimers();
+      await runAllTimers();
 
-    expect(await promiseStatus(promise)).toBe('fulfilled');
-    await expectStatus(store, 'request', singleSuccessRequestStatus);
-    expect(await promise).toBe('response');
-    expect(request).toHaveBeenCalledTimes(1);
+      expect(await promiseStatus(promise)).toBe('fulfilled');
+      await expectStatus(store, 'request', singleSuccessRequestStatus);
+      expect(await promise).toBe('response');
+      expect(request).toHaveBeenCalledTimes(1);
+    }
+
+    test('throw on failure', () => executeTest(false));
+    test('undefined on failure', () => executeTest(true));
   });
 
-  test('single failed request', async () => {
-    request.mockImplementationOnce(async () => {
-      await delay(100);
-      throw new TypeError("Something's going wrong");
-    });
+  describe('single failed request', () => {
+    async function executeTest(undefinedOnFailure: boolean): Promise<void> {
+      request.mockImplementationOnce(async () => {
+        await delay(100);
+        throw new TypeError("Something's going wrong");
+      });
 
-    const store = new Store();
+      const store = new Store();
 
-    await expectStatus(store, 'request', initialRequestStatus);
+      await expectStatus(store, 'request', initialRequestStatus);
 
-    const promise = store.makeRequest();
+      const promise = undefinedOnFailure ? store.makeRequestUndefined() : store.makeRequest();
 
-    expect(await promiseStatus(promise)).toBe('pending');
-    expectPromiseToReject(promise, 'Request "request" failed');
+      expect(await promiseStatus(promise)).toBe('pending');
+      if (!undefinedOnFailure) {
+        expectPromiseToReject(promise, 'Request "request" failed');
+      }
 
-    await advanceTimers(50);
+      await advanceTimers(50);
 
-    expect(await promiseStatus(promise)).toBe('pending');
-    await expectStatus(store, 'request', initialLoadingRequestStatus);
+      expect(await promiseStatus(promise)).toBe('pending');
+      await expectStatus(store, 'request', initialLoadingRequestStatus);
 
-    await runAllTimers();
+      await runAllTimers();
 
-    expect(await promiseStatus(promise)).toBe('rejected');
-    await expectStatus(store, 'request', singleErrorRequestStatus);
-    expect(request).toHaveBeenCalledTimes(1);
-    await wrapComputed(() => expectError(store.errorInstance('request'), "Something's going wrong"));
+      if (undefinedOnFailure) {
+        expect(await promiseStatus(promise)).toBe('fulfilled');
+        expect(await promise).toBe(undefined);
+      } else {
+        expect(await promiseStatus(promise)).toBe('rejected');
+      }
+
+      await expectStatus(store, 'request', singleErrorRequestStatus);
+      expect(request).toHaveBeenCalledTimes(1);
+      await wrapComputed(() => expectError(store.errorInstance('request'), "Something's going wrong"));
+    }
+
+    test('throw on failure', () => executeTest(false));
+    test('undefined on failure', () => executeTest(true));
   });
 
   test('two concurrent successful requests of the different types', async () => {
@@ -212,14 +198,45 @@ describe('loading store', () => {
     expect(await promiseStatus(promise1)).toBe('fulfilled');
     expect(await promiseStatus(promise2)).toBe('rejected');
     expectPromiseToReject(promise2, 'Request "request" is timed out');
-    await expectStatus(store, 'request', {
-      requested: true,
-      loading: false,
-      loaded: true,
-      loadedOnce: true,
-      error: false,
-      errorOnce: false
-    });
+    await expectStatus(store, 'request', singleSuccessRequestStatus);
     expect(request).toHaveBeenCalledTimes(1);
+  });
+
+  describe('callbacks', () => {
+    test('successful callback', async () => {
+      const store = new Store();
+
+      const onSuccess = jest.fn();
+      const onError = jest.fn();
+
+      store.makeRequest({ onSuccess, onError });
+
+      await runAllTimers();
+
+      expect(onSuccess).toHaveBeenCalledTimes(1);
+      expect(onSuccess).toHaveBeenCalledWith('response');
+      expect(onError).toHaveBeenCalledTimes(0);
+    });
+
+    test('error callback', async () => {
+      request.mockImplementationOnce(async () => {
+        await delay(100);
+        throw new Request("Something's going really wrong");
+      });
+
+      const store = new Store();
+
+      const onSuccess = jest.fn();
+      const onError = jest.fn();
+
+      const promise = store.makeRequest({ onSuccess, onError });
+      expectPromiseToReject(promise, 'Request "request" failed');
+
+      await runAllTimers();
+
+      expect(onSuccess).toHaveBeenCalledTimes(0);
+      expect(onError).toHaveBeenCalledTimes(1);
+      expect(onError).toHaveBeenCalledWith({ code: -1, instance: new TypeError("Something's going really wrong") });
+    });
   });
 });
