@@ -74,7 +74,7 @@ Each request's status is an `@observable` object of `RequestStatus` type consist
 - `requested` — at least one request done, no matter whether it was successful or ended with error;
 - `loading` — request is executing;
 - `loaded` — latest request was successful (shorthand for `requested && !loading && !error`);
-- `loadedOnce' — request was successful at least once;
+- `loadedOnce` — request was successful at least once;
 - `error` — latest request is ended with error;
 - `errorOnce` — request is ended with error at least once.
 
