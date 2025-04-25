@@ -38,7 +38,7 @@ export abstract class LoadingStore<RequestType extends string | number = string>
     this.requestErrorExtractor = requestErrorExtractor || defaultRequestErrorExtractor;
   }
 
-  init(): Promise<void> {
+  @action init(): Promise<void> {
     this.initialized = true;
     return Promise.resolve();
   }

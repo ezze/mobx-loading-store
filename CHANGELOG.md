@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.1 (2025-04-25)
+
+- Fix initialization method in MobX strict mode by decorating it by `@action`.
+
 ## 0.6.0 (2025-04-23)
 
 - `loadedOnce` and `errorOnce` request states are added.
