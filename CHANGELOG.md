@@ -1,8 +1,9 @@
 # Changelog
 
-## 0.6.2 (2025-07-28)
+## 0.7.0 (2025-07-28)
 
 - Export significant types.
+- Development dependencies are upgraded.
 
 ## 0.6.1 (2025-04-25)
 
