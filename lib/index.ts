@@ -13,3 +13,12 @@ export {
   LoadingStoreRequestWaitTimeoutError,
   isLoadingStoreRequestError
 };
+
+export type {
+  LoadingStoreOptions,
+  RequestAction,
+  RequestError,
+  RequestErrorExtractor,
+  RequestStatus,
+  Store
+} from './types.ts';

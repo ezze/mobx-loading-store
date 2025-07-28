@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.2 (2025-07-28)
+
+- Export significant types.
+
 ## 0.6.1 (2025-04-25)
 
 - Fix initialization method in MobX strict mode by decorating it by `@action`.
