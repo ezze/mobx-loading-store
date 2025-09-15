@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.1 (2025-09-15)
+
+- Add `types` to `exports` in `package.json` allowing to resolve types in `bundler` module resolution.
+
 ## 0.7.0 (2025-07-28)
 
 - Export significant types.

@@ -1,6 +1,6 @@
 {
   "name": "mobx-loading-store",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Abstract class for MobX store to control API requests' state out-of-the-box",
   "keywords": [
     "mobx",
@@ -26,11 +26,14 @@
   "type": "module",
   "main": "dist/index.cjs",
   "module": "dist/index.es.js",
-  "exports": {
-    "require": "./dist/index.cjs",
-    "import": "./dist/index.es.js"
-  },
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.es.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "files": [
     "dist"
   ],
@@ -40,7 +43,7 @@
     "lint": "eslint lib",
     "test": "jest",
     "test:coverage": "jest --coverage",
-    "prepublishOnly": "pnpm build"
+    "prepublishOnly": "pnpm lint && pnpm test && pnpm build"
   },
   "prettier": "prettier-config-ezze",
   "peerDependencies": {
