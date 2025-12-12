@@ -23,15 +23,15 @@ export abstract class LoadingStore<RequestType extends string | number = string>
 
   @observable accessor initialized = false;
 
-  @observable accessor requestedMap: Partial<Record<RequestType, boolean>> = {}; // shows whether data was requested at least once
+  @observable protected accessor requestedMap: Partial<Record<RequestType, boolean>> = {}; // shows whether data was requested at least once
 
-  @observable accessor loadingMap: Partial<Record<RequestType, boolean>> = {};
+  @observable protected accessor loadingMap: Partial<Record<RequestType, boolean>> = {};
 
-  @observable accessor loadedOnceMap: Partial<Record<RequestType, boolean>> = {}; // shows whether data was loaded at least once
+  @observable protected accessor loadedOnceMap: Partial<Record<RequestType, boolean>> = {}; // shows whether data was loaded at least once
 
-  @observable accessor errorMap: Partial<Record<RequestType, RequestError>> = {};
+  @observable protected accessor errorMap: Partial<Record<RequestType, RequestError>> = {};
 
-  @observable accessor errorOnceMap: Partial<Record<RequestType, boolean>> = {}; // show whether data was failed to load at least once
+  @observable protected accessor errorOnceMap: Partial<Record<RequestType, boolean>> = {}; // show whether data was failed to load at least once
 
   public constructor(options?: LoadingStoreOptions) {
     const { requestErrorExtractor } = options || {};
@@ -80,21 +80,21 @@ export abstract class LoadingStore<RequestType extends string | number = string>
     }
   }
 
-  // Internal actions to alter request status
+  // Actions to alter request status
 
-  @action protected setRequested(requestType: RequestType, requested: boolean): void {
+  @action setRequested(requestType: RequestType, requested: boolean): void {
     this.requestedMap[requestType] = requested;
   }
 
-  @action protected setLoading(requestType: RequestType, loading: boolean): void {
+  @action setLoading(requestType: RequestType, loading: boolean): void {
     this.loadingMap[requestType] = loading;
   }
 
-  @action protected setLoadedOnce(requestType: RequestType, loadedOnce: boolean): void {
+  @action setLoadedOnce(requestType: RequestType, loadedOnce: boolean): void {
     this.loadedOnceMap[requestType] = loadedOnce;
   }
 
-  @action protected setError(requestType: RequestType, error?: RequestError): void {
+  @action setError(requestType: RequestType, error?: RequestError): void {
     if (error === undefined) {
       delete this.errorMap[requestType];
     } else {
@@ -102,7 +102,7 @@ export abstract class LoadingStore<RequestType extends string | number = string>
     }
   }
 
-  @action protected setErrorOnce(requestType: RequestType, errorOnce: boolean): void {
+  @action setErrorOnce(requestType: RequestType, errorOnce: boolean): void {
     this.errorOnceMap[requestType] = errorOnce;
   }
 

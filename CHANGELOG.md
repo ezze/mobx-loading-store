@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.0 (2025-12-12)
+
+- Methods to change the request status are public now, while the request status itself is protected.
+
 ## 0.7.1 (2025-09-15)
 
 - Add `types` to `exports` in `package.json` allowing to resolve types in `bundler` module resolution.
