@@ -44,12 +44,12 @@ export abstract class LoadingStore<RequestType extends string | number = string>
     this.requestErrorExtractor = requestErrorExtractor || defaultRequestErrorExtractor;
   }
 
-  doInit(): Promise<void> {
+  protected doInit(): Promise<void> {
     // Initialization logic must be implemented in derived class here
     return Promise.resolve();
   }
 
-  doDispose(): Promise<void> {
+  protected doDispose(): Promise<void> {
     // Disposing logic must be implemented in derived class here
     return Promise.resolve();
   }

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.1 (2025-12-17)
+
+- `doInit()` and `doDispose()` are protected.
+
 ## 0.9.0 (2025-12-17)
 
 - Store initialization/disposing logic is improved providing additional states such as `initializing`, `disposing` and `disposed`.
