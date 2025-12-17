@@ -1,6 +1,6 @@
 import { reaction } from 'mobx';
 
-import { RequestStatus } from '../lib/types';
+import { RequestStatus } from '../lib';
 
 import {
   initialLoadingRequestStatus,
@@ -38,6 +38,108 @@ describe('loading store', () => {
   function expectStatus(store: Store, requestType: RequestType, requestStatus: RequestStatus): Promise<void> {
     return wrapComputed(() => expect(store.requestStatus(requestType)).toStrictEqual(requestStatus));
   }
+
+  describe('initialization / disposing', () => {
+    test('successful initialization / disposing', async () => {
+      const store = new Store();
+
+      const doInitSpy = jest.spyOn(store, 'doInit');
+      const doDisposeSpy = jest.spyOn(store, 'doDispose');
+
+      expect(store.initialized).toBe(false);
+      expect(store.initializing).toBe(false);
+      expect(store.disposed).toBe(false);
+      expect(store.disposing).toBe(false);
+      expect(doInitSpy).toHaveBeenCalledTimes(0);
+      expect(doDisposeSpy).toHaveBeenCalledTimes(0);
+
+      const initPromise = store.init();
+      expect(store.initialized).toBe(false);
+      expect(store.initializing).toBe(true);
+      expect(store.disposed).toBe(false);
+      expect(store.disposing).toBe(false);
+      expect(doInitSpy).toHaveBeenCalledTimes(1);
+      expect(doDisposeSpy).toHaveBeenCalledTimes(0);
+
+      await initPromise;
+      expect(store.initialized).toBe(true);
+      expect(store.initializing).toBe(false);
+      expect(store.disposed).toBe(false);
+      expect(store.disposing).toBe(false);
+      expect(doInitSpy).toHaveBeenCalledTimes(1);
+      expect(doDisposeSpy).toHaveBeenCalledTimes(0);
+
+      const disposePromise = store.dispose();
+      expect(store.disposed).toBe(false);
+      expect(store.disposing).toBe(true);
+      expect(doDisposeSpy).toHaveBeenCalledTimes(1);
+
+      await disposePromise;
+      expect(store.disposed).toBe(true);
+      expect(store.disposing).toBe(false);
+      expect(doDisposeSpy).toHaveBeenCalledTimes(1);
+    });
+
+    test('unsuccessful initialization', async () => {
+      const store = new Store();
+
+      const doInitSpy = jest.spyOn(store, 'doInit').mockRejectedValueOnce(new Error('Initialization failed'));
+
+      expect(store.initialized).toBe(false);
+      expect(store.initializing).toBe(false);
+
+      const initPromise = store.init();
+      expect(store.initialized).toBe(false);
+      expect(store.initializing).toBe(true);
+
+      await expect(initPromise).rejects.toThrow('Initialization failed');
+
+      expect(store.initialized).toBe(false);
+      expect(store.initializing).toBe(false);
+      expect(doInitSpy).toHaveBeenCalledTimes(1);
+    });
+
+    test('unsuccessful disposing', async () => {
+      const store = new Store();
+
+      const doDisposeSpy = jest.spyOn(store, 'doDispose').mockRejectedValueOnce(new Error('Disposing failed'));
+
+      await store.init();
+
+      expect(store.disposed).toBe(false);
+      expect(store.disposing).toBe(false);
+
+      const disposePromise = store.dispose();
+      expect(store.disposed).toBe(false);
+      expect(store.disposing).toBe(true);
+
+      await expect(disposePromise).rejects.toThrow('Disposing failed');
+
+      expect(store.disposed).toBe(false);
+      expect(store.disposing).toBe(false);
+      expect(doDisposeSpy).toHaveBeenCalledTimes(1);
+    });
+
+    test('waiting for initialization', async () => {
+      jest.useRealTimers(); // we want to test it with real timers
+
+      const store = new Store();
+
+      const doInitSpy = jest.spyOn(store, 'doInit').mockImplementationOnce(async () => {
+        await new Promise((resolve) => {
+          setTimeout(resolve, 10);
+        });
+      });
+
+      store.init();
+      expect(store.initialized).toBe(false);
+      await store.whenInitialized();
+      expect(store.initialized).toBe(true);
+      expect(doInitSpy).toHaveBeenCalledTimes(1);
+
+      jest.useFakeTimers(); // revert back to fake timers for proper afterEach handling
+    });
+  });
 
   describe('single successful request', () => {
     async function executeTest(undefinedOnFailure: boolean): Promise<void> {

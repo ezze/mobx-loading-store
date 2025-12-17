@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.0 (2025-12-17)
+
+- Store initialization/disposing logic is improved providing additional states such as `initializing`, `disposing` and `disposed`.
+- Dependencies are upgraded.
+
 ## 0.8.0 (2025-12-12)
 
 - Methods to change the request status are public now, while the request status itself is protected.

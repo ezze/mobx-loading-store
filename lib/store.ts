@@ -1,4 +1,4 @@
-import { action, computed, observable, when } from 'mobx';
+import { action, computed, observable, runInAction, when } from 'mobx';
 import { computedFn } from 'mobx-utils';
 
 import { DEFAULT_REQUEST_WAIT_TIMEOUT } from './const.ts';
@@ -23,6 +23,12 @@ export abstract class LoadingStore<RequestType extends string | number = string>
 
   @observable accessor initialized = false;
 
+  @observable accessor initializing = false;
+
+  @observable accessor disposed = false;
+
+  @observable accessor disposing = false;
+
   @observable protected accessor requestedMap: Partial<Record<RequestType, boolean>> = {}; // shows whether data was requested at least once
 
   @observable protected accessor loadingMap: Partial<Record<RequestType, boolean>> = {};
@@ -38,17 +44,47 @@ export abstract class LoadingStore<RequestType extends string | number = string>
     this.requestErrorExtractor = requestErrorExtractor || defaultRequestErrorExtractor;
   }
 
-  @action init(): Promise<void> {
-    this.initialized = true;
+  doInit(): Promise<void> {
+    // Initialization logic must be implemented in derived class here
     return Promise.resolve();
+  }
+
+  doDispose(): Promise<void> {
+    // Disposing logic must be implemented in derived class here
+    return Promise.resolve();
+  }
+
+  @action async init(): Promise<void> {
+    this.initializing = true;
+    try {
+      await this.doInit();
+      runInAction(() => {
+        this.initialized = true;
+      });
+    } finally {
+      runInAction(() => {
+        this.initializing = false;
+      });
+    }
+    return Promise.resolve();
+  }
+
+  @action async dispose(): Promise<void> {
+    this.disposing = true;
+    try {
+      await this.doDispose();
+      runInAction(() => {
+        this.disposed = true;
+      });
+    } finally {
+      runInAction(() => {
+        this.disposing = false;
+      });
+    }
   }
 
   async whenInitialized(): Promise<void> {
     return when(() => this.initialized);
-  }
-
-  async dispose() {
-    // Nothing to do here at the moment
   }
 
   @action resetRequestStatus(requestTypes: RequestType | Array<RequestType> = []): void {
