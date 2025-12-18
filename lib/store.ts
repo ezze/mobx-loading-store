@@ -87,6 +87,10 @@ export abstract class LoadingStore<RequestType extends string | number = string>
     return when(() => this.initialized);
   }
 
+  async whenDisposed(): Promise<void> {
+    return when(() => this.disposed);
+  }
+
   @action resetRequestStatus(requestTypes: RequestType | Array<RequestType> = []): void {
     const reqTypes = Array.isArray(requestTypes) ? requestTypes : [requestTypes];
     if (reqTypes.length === 0) {

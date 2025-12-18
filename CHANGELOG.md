@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.10.0 (2025-12-19)
+
+- `whenDisposed()` method is added.
+- `Store` interface is extended by the following properties and methods:
+    - `initialized`;
+    - `initializing`;
+    - `disposed`;
+    - `disposing`;
+    - `whenInitialized()`;
+    - `whenDisposed()`.
+
 ## 0.9.1 (2025-12-17)
 
 - `doInit()` and `doDispose()` are protected.

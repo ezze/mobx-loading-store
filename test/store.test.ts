@@ -1,6 +1,6 @@
 import { reaction } from 'mobx';
 
-import { RequestStatus } from '../lib';
+import { RequestStatus, Store } from '../lib';
 
 import {
   initialLoadingRequestStatus,
@@ -19,8 +19,13 @@ import {
   wrapComputed
 } from './helpers';
 import { anotherRequest, request, yetAnotherRequest } from './mocks';
-import { Store } from './store';
+import { TestStore } from './store';
 import { RequestType } from './types';
+
+interface TestStoreInterface extends Store {
+  doInit(): Promise<void>;
+  doDispose(): Promise<void>;
+}
 
 describe('loading store', () => {
   beforeEach(() => {
@@ -35,13 +40,17 @@ describe('loading store', () => {
     jest.useRealTimers();
   });
 
-  function expectStatus(store: Store, requestType: RequestType, requestStatus: RequestStatus): Promise<void> {
+  function expectStatus(store: TestStore, requestType: RequestType, requestStatus: RequestStatus): Promise<void> {
     return wrapComputed(() => expect(store.requestStatus(requestType)).toStrictEqual(requestStatus));
+  }
+
+  function createStore(): TestStoreInterface {
+    return new TestStore() as unknown as TestStoreInterface;
   }
 
   describe('initialization / disposing', () => {
     test('successful initialization / disposing', async () => {
-      const store = new Store();
+      const store = createStore();
 
       const doInitSpy = jest.spyOn(store, 'doInit');
       const doDisposeSpy = jest.spyOn(store, 'doDispose');
@@ -81,7 +90,7 @@ describe('loading store', () => {
     });
 
     test('unsuccessful initialization', async () => {
-      const store = new Store();
+      const store = createStore();
 
       const doInitSpy = jest.spyOn(store, 'doInit').mockRejectedValueOnce(new Error('Initialization failed'));
 
@@ -100,7 +109,7 @@ describe('loading store', () => {
     });
 
     test('unsuccessful disposing', async () => {
-      const store = new Store();
+      const store = createStore();
 
       const doDisposeSpy = jest.spyOn(store, 'doDispose').mockRejectedValueOnce(new Error('Disposing failed'));
 
@@ -120,12 +129,18 @@ describe('loading store', () => {
       expect(doDisposeSpy).toHaveBeenCalledTimes(1);
     });
 
-    test('waiting for initialization', async () => {
+    test('waiting for initialization / disposing', async () => {
       jest.useRealTimers(); // we want to test it with real timers
 
-      const store = new Store();
+      const store = createStore();
 
       const doInitSpy = jest.spyOn(store, 'doInit').mockImplementationOnce(async () => {
+        await new Promise((resolve) => {
+          setTimeout(resolve, 10);
+        });
+      });
+
+      const doDisposeSpy = jest.spyOn(store, 'doDispose').mockImplementationOnce(async () => {
         await new Promise((resolve) => {
           setTimeout(resolve, 10);
         });
@@ -136,6 +151,14 @@ describe('loading store', () => {
       await store.whenInitialized();
       expect(store.initialized).toBe(true);
       expect(doInitSpy).toHaveBeenCalledTimes(1);
+      expect(doDisposeSpy).toHaveBeenCalledTimes(0);
+
+      store.dispose();
+      expect(store.disposed).toBe(false);
+      await store.whenDisposed();
+      expect(store.disposed).toBe(true);
+      expect(doInitSpy).toHaveBeenCalledTimes(1);
+      expect(doDisposeSpy).toHaveBeenCalledTimes(1);
 
       jest.useFakeTimers(); // revert back to fake timers for proper afterEach handling
     });
@@ -143,7 +166,7 @@ describe('loading store', () => {
 
   describe('single successful request', () => {
     async function executeTest(undefinedOnFailure: boolean): Promise<void> {
-      const store = new Store();
+      const store = new TestStore();
 
       await expectStatus(store, 'request', initialRequestStatus);
 
@@ -174,7 +197,7 @@ describe('loading store', () => {
         throw new TypeError("Something's going wrong");
       });
 
-      const store = new Store();
+      const store = new TestStore();
 
       await expectStatus(store, 'request', initialRequestStatus);
 
@@ -209,7 +232,7 @@ describe('loading store', () => {
   });
 
   test('two concurrent successful requests of the different types', async () => {
-    const store = new Store();
+    const store = new TestStore();
 
     await expectStatus(store, 'request', initialRequestStatus);
     await expectStatus(store, 'anotherRequest', initialRequestStatus);
@@ -242,7 +265,7 @@ describe('loading store', () => {
   });
 
   test('concurrent successful requests of the same type', async () => {
-    const store = new Store();
+    const store = new TestStore();
 
     await expectStatus(store, 'request', initialRequestStatus);
 
@@ -274,7 +297,7 @@ describe('loading store', () => {
   });
 
   test('timed out concurrent request of the same type', async () => {
-    const store = new Store();
+    const store = new TestStore();
 
     await expectStatus(store, 'request', initialRequestStatus);
 
@@ -313,7 +336,7 @@ describe('loading store', () => {
         throw new Error('Error');
       });
 
-      const store = new Store();
+      const store = new TestStore();
 
       await expectStatus(store, 'request', initialRequestStatus);
       await expectStatus(store, 'anotherRequest', initialRequestStatus);
@@ -340,7 +363,7 @@ describe('loading store', () => {
 
   describe('callbacks', () => {
     test('successful callback', async () => {
-      const store = new Store();
+      const store = new TestStore();
 
       const onSuccess = jest.fn();
       const onError = jest.fn();
@@ -360,7 +383,7 @@ describe('loading store', () => {
         throw new Error("Something's going really wrong");
       });
 
-      const store = new Store();
+      const store = new TestStore();
 
       const onSuccess = jest.fn();
       const onError = jest.fn();
@@ -377,7 +400,7 @@ describe('loading store', () => {
   });
 
   test('react to request status changes', async () => {
-    const store = new Store();
+    const store = new TestStore();
 
     const reactionFn = jest.fn();
 

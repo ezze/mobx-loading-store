@@ -1,6 +1,13 @@
 export interface Store {
+  initialized: boolean;
+  initializing: boolean;
+  disposed: boolean;
+  disposing: boolean;
+
   init(): Promise<void>;
   dispose(): Promise<void>;
+  whenInitialized(): Promise<void>;
+  whenDisposed(): Promise<void>;
 }
 
 export type RecordEntryKey = string | number;

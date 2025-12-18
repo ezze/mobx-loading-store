@@ -1,6 +1,6 @@
 {
   "name": "mobx-loading-store",
-  "version": "0.9.1",
+  "version": "0.10.0",
   "description": "Abstract class for MobX store to control API requests' state out-of-the-box",
   "keywords": [
     "mobx",
